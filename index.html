@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+        
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>Loyyal Encryption & Signing demo</title>
+  <!--link rel="stylesheet" type="text/css" href="example.css"/-->
+  <script
+    src="https://code.jquery.com/jquery-3.1.1.min.js"
+    integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+    crossorigin="anonymous">
+  </script>
+  <script type="text/javascript" src="../sjcl.js"></script>
+  <script>
+  var pair
+    function loaded() {        
+        sjcl.random.startCollectors()
+        pair = getPair() || generateKeySets()
+        displayKeys("bob")
+        displayKeys("alice")
+    }
+    function displayKeys(name){
+        $("."+name+"#pub #key").html(JSON.stringify(pair[name].serialized.pub))        
+        $("."+name+"#priv #key").html(JSON.stringify(pair[name].serialized.priv))
+    }
+    function generateKeySets(){
+        var aliceKeys = generatePair()
+        var bobKeys = generatePair() 
+        var keySets = {"alice": aliceKeys.deserialized, "bob": bobKeys.deserialized}
+        var serializedKeySets = {"alice": aliceKeys.serialized, "bob": bobKeys.serialized}
+        storeKeySets(serializedKeySets)
+        return getPair()
+    }
+    function resetKeySets() {
+        localStorage.removeItem("loyyal-encryption-keyset")
+        loaded()
+    }
+    function storeKeySets(keySets) {
+        localStorage.setItem("loyyal-encryption-keyset", JSON.stringify(keySets))
+    }
+    function generatePair(){
+        // generate pair
+        var pair = sjcl.ecc.elGamal.generateKeys(256)
+        // split pair
+        var pub = pair.pub.get(), priv = pair.sec.get()
+
+        // serialize keys:
+        var serializedPub = sjcl.codec.base64.fromBits(pub.x.concat(pub.y))
+        var serializedPriv = sjcl.codec.base64.fromBits(priv)
+        var serializedKeySet = {pub: serializedPub, priv: serializedPriv }
+
+        // deserialize keys
+        var keySet = {deserialized: deserializeKeyset(serializedKeySet), serialized: serializedKeySet} 
+        return keySet
+    }
+    function getPair() {
+        var storedItem = localStorage.getItem("loyyal-encryption-keyset")
+        if (!storedItem) return false
+        var serializedKeySets = JSON.parse(storedItem)
+        var aliceKeys = deserializeKeyset(serializedKeySets["alice"])
+        var bobKeys = deserializeKeyset(serializedKeySets["bob"])
+        var keySets = {"alice": {serialized: serializedKeySets["alice"], deserialized: aliceKeys}, "bob": {serialized:serializedKeySets["bob"],  deserialized: bobKeys}}
+        return keySets
+    }
+    function deserializeKeyset(serializedKeySet) {        
+        var pub = deserializePub(serializedKeySet.pub)
+        var priv = deserializePriv(serializedKeySet.priv)
+        var keySet = {pub: pub, priv: priv}
+        return keySet
+    }
+    function deserializePub(pub){
+        return new sjcl.ecc.elGamal.publicKey(
+            sjcl.ecc.curves.c256, 
+            sjcl.codec.base64.toBits(pub)
+        )
+    }
+    function deserializePriv(priv){
+        return new sjcl.ecc.elGamal.secretKey(
+            sjcl.ecc.curves.c256,
+            sjcl.ecc.curves.c256.field.fromBits(sjcl.codec.base64.toBits(priv))
+        )
+    }
+    function encrypt(){
+        var encrypted, msg, pub
+        try {
+            msg = $(".decryptedMsg").val()
+            pub = deserializePub(JSON.parse($(".pubkeyToEncrypt").val()))
+            encrypted = sjcl.encrypt(pub, msg)
+        } catch(err){
+            encrypted = err
+        }
+        $(".encrypted").val(encrypted)
+    }
+    function sign(){
+        var msg, key, sig
+        try {
+            msg = $(".decryptedMsg").val()
+            key = deserializePriv(JSON.parse($(".privkeyToSign").val()))
+            sig = key.sign(sjcl.hash.sha256.hash("Hello World!"))
+        } catch(err) {
+            sig = err
+        }
+        $(".signature").val(sig)
+    }
+    function decrypt(){
+        var decrypted, msg, priv, encrypted
+        
+        try {
+            msg = $(".decryptedMsg").val()
+            priv = deserializePriv(JSON.parse($(".privkeyToEncrypt").val()))
+            encrypted = $(".encrypted").val()
+            decrypted = sjcl.decrypt(priv, encrypted)
+        } catch (err){
+            decrypted = err
+        }
+        $(".decrypted").val(decrypted)
+    }
+    function signer(name){
+        var key = $("."+name+" .priv").html()
+        $(".privkeyToSign").val(key)
+        $(".signer").html("Signer ("+name+")")
+        console.log(name)
+    }
+    $(document).on("click", "pre#key", function(e){
+        var target = $(e.currentTarget)
+        var key = target.html()
+        var type = target.attr('class')
+        var name = target.attr('data-name')
+        if (type === "pub") {
+            $(".recipient").html("Pubkey (Recipient: "+name+")")
+            $(".pubkeyToEncrypt").val(key)
+        } else {
+            $(".decryptor").html("Privkey (Recipient: "+name+")")
+            $(".privkeyToEncrypt").val(key)
+        }
+    })
+  </script>
+</head>
+<body onload="loaded()">
+  <h1>Loyyal Encryption & Signing demo</h1>
+  <button onclick="resetKeySets()">Reset keys</button> <a href="https://github.com/bitwiseshiftleft/sjcl/wiki/Asymmetric-Crypto">Docs</a>
+  <div class="keysets">
+      <!-- ALICE -->
+    <div class="alice" id="pub">
+        <h2>Alice Public key</h2>
+        <pre class="pub" data-name="alice" id="key"></pre>
+    </div>
+    <hr>
+    <div class="alice" id="priv">
+        <h2>Alice Private key</h2>
+        <button onclick="signer('alice')">Make Signer</button>
+        <pre class="priv" data-name="alice" id="key"></pre>
+    </div>
+    <hr>
+    <!-- BOB -->
+    <div class="bob" id="pub">
+        <h2>Bob Public key</h2>
+        <pre class="pub" data-name="bob" id="key"></pre>
+    </div>
+    <hr>
+    <div class="bob" id="priv">
+        <h2>Bob Private key</h2>
+        <button onclick="signer('bob')">Make Signer</button>
+        <pre class="priv" data-name="bob" id="key"></pre>
+    </div>
+  </div>
+  <hr>
+  <h2>Message</h2>
+  <textarea class="decryptedMsg" cols="40" rows="5">Agents all the way down</textarea>
+  <h2 class="recipient">Pubkey (Recipient)</h2>
+  <textarea class="pubkeyToEncrypt" cols="40" rows="5"></textarea>
+  <button onclick="encrypt()" >Encrypt</button>
+  <h2>Encrypted</h2>
+  <textarea class="encrypted" cols="40" rows="5"></textarea>
+  <h2 class="signer">Signer (None)</h2>
+  <textarea class="privkeyToSign" cols="40" rows="5"></textarea>
+  <button onclick="sign()" >Sign</button>
+  <h2>Signature</h2>
+  <textarea class="signature" cols="40" rows="5"></textarea>
+  <h2 class="decryptor">Privkey</h2>
+  <textarea class="privkeyToEncrypt" cols="40" rows="5"></textarea>
+  <button onclick="decrypt()" >Decrypt</button>
+  <h2>Decrypted</h2>
+  <textarea class="decrypted" cols="40" rows="5"></textarea>
+</body>
+</html>
