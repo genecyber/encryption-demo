@@ -25,7 +25,7 @@
     }
     function generateKeySets(){
         var aliceKeys = generatePair()
-        var bobKeys = generatePair() 
+        var bobKeys = generatePair()
         var keySets = {"alice": aliceKeys.deserialized, "bob": bobKeys.deserialized}
         var serializedKeySets = {"alice": aliceKeys.serialized, "bob": bobKeys.serialized}
         storeKeySets(serializedKeySets)
@@ -172,11 +172,11 @@
   <button onclick="encrypt()" >Encrypt</button>
   <h2>Encrypted</h2>
   <textarea class="encrypted" cols="40" rows="5"></textarea>
-  <h2 class="signer">Signer (None)</h2>
+  <<!--h2 class="signer">Signer (None)</h2>
   <textarea class="privkeyToSign" cols="40" rows="5"></textarea>
   <button onclick="sign()" >Sign</button>
   <h2>Signature</h2>
-  <textarea class="signature" cols="40" rows="5"></textarea>
+  <textarea class="signature" cols="40" rows="5"></textarea-->
   <h2 class="decryptor">Privkey</h2>
   <textarea class="privkeyToEncrypt" cols="40" rows="5"></textarea>
   <button onclick="decrypt()" >Decrypt</button>
