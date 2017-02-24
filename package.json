@@ -9,10 +9,16 @@
   "author": "Shannon Code",
   "license": "MIT",
   "dependencies": {
+    "bitcoinjs-lib": "2.3.0",
+    "bitcoinjs-lib-browser": "git://github.com/DecentricCorp/bitcoinjs-lib-browser.git",
     "bitcore": "^0.12.15",
+    "bitcore-explorers-multi": "git://github.com/synrg-labs/bitcore-explorers-multi.git",
+    "bitcore-message": "git://github.com/synrg-labs/bitcore-message.git",
     "buffer-alloc": "^1.1.0",
     "buffer-concat": "^1.0.0",
+    "ethereumjs-util": "^5.1.1",
     "express": "^4.14.1",
+    "insight-bitcore-api": "git://github.com/DecentricCorp/insight-api-coval.git",
     "sodium-native": "^1.5.1",
     "tape": "^4.6.3"
   }
